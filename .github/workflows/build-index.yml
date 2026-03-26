@@ -7,6 +7,9 @@ on:
       - 'reviews/**/*.html'      # 仅当 reviews 文件夹下的 .html 文件变化时触发
   workflow_dispatch:             # 允许手动触发（可选）
 
+permissions:
+  contents: write   # 显式授予写入权限
+
 jobs:
   build:
     runs-on: ubuntu-latest
