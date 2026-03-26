@@ -2,24 +2,23 @@ name: Build Index
 
 on:
   push:
-    branches: [ reviews-branch ]      # 监听 reviews-branch 分支的推送
+    branches: [ main ]           # 如果你使用 master，请改为 master
     paths:
-      - 'reviews/**/*.html'           # 仅当 reviews 文件夹下的 .html 文件变化时触发
-  workflow_dispatch:                  # 允许手动触发（可选）
+      - 'reviews/**/*.html'      # 仅当 reviews 文件夹下的 .html 文件变化时触发
+  workflow_dispatch:             # 允许手动触发（可选）
 
 permissions:
-  contents: write                     # 允许 github-actions[bot] 推送代码
+  contents: write   # 显式授予写入权限
 
 jobs:
   build:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout reviews-branch
+      - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          ref: reviews-branch          # 检出 reviews-branch
-          fetch-depth: 0               # 获取所有历史，以便后续切换到 main 分支
+          token: ${{ secrets.GITHUB_TOKEN }}   # 用于后续提交
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -27,38 +26,16 @@ jobs:
           python-version: '3.10'
 
       - name: Install dependencies
-        run: pip install beautifulsoup4
+        run: |
+          pip install beautifulsoup4   # 可选，用于更稳健的HTML解析；若只用正则可不装
 
       - name: Generate index.html
         run: python scripts/generate_index.py
 
-      - name: Prepare main branch and commit index.html
+      - name: Commit and push if changed
         run: |
-          # 配置 git 用户信息
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-
-          # 切换到 main 分支，如果不存在则创建（基于当前分支的根目录）
-          git checkout main || git checkout -b main
-
-          # 将生成的 index.html 移动到 main 分支根目录（如果脚本已经在根目录生成，则直接使用）
-          # 注意：脚本生成 index.html 时是在 reviews-branch 的根目录，切换到 main 后文件仍然在工作区
-          # 确保 index.html 存在，如果不在则从原工作区复制（但由于 checkout 切换了分支，文件会被覆盖，需要处理）
-          # 更好的做法：在生成 index.html 后，将其暂存到临时位置，然后切换分支再放入
-          # 下面使用一种简单可靠的方式：先复制到临时文件，切换分支后复制回来
-          cp index.html /tmp/index.html
-
-          # 切换到 main 分支（如果刚才已经切换，这里确保）
-          git checkout main
-
-          # 将临时文件复制到根目录
-          cp /tmp/index.html .
-
-          # 检查是否有变更，如果有则提交并推送
           git add index.html
-          if git diff --staged --quiet; then
-            echo "No changes to index.html"
-          else
-            git commit -m "Auto-update index.html from reviews-branch"
-            git push origin main
-          fi
+          git diff --quiet && git diff --staged --quiet || git commit -m "Auto-update index.html"
+          git push
