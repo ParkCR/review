@@ -151,21 +151,19 @@
     <div style="overflow-x: auto;">
         <table id="review-table">
             <thead>
-                <tr><th>标题</th><th>日期</th><th>标签</th><th>摘要</th></tr>
-            </thead>
+                <tr><th>标题</th><th>日期</th><th>标签</th><th>摘要</th></thead>
             <tbody id="tableBody">
-                <tr class="empty-row"><td colspan="4">加载中...</td></tr>
+                <tr class="empty-row"><td colspan="4">加载中... </td></tr>
             </tbody>
-        </table>
+         </table>
     </div>
     <div class="footer">
         💡 提示：每条记录对应一个复盘 HTML 文件，文件名格式建议 <code>YYYY-MM-DD_主题.html</code>，可在文件内添加 <code>&lt;!-- tags: 标签1 标签2 --&gt;</code> 和 <code>&lt;!-- summary: 摘要 --&gt;</code> 注释以丰富信息。
     </div>
 </div>
 
+<script src="data.js"></script>
 <script>
-    const reviewData = [{"title": "推特图片-HSTS 缓存冲突排查与解决指南", "date": "2026-03-25", "tags": "Chrome调试, HSTS缓存, 网络故障排查", "summary": "排查并解决推特图片因HSTS缓存冲突导致的加载失败问题", "link": "reviews/2026-03-25_推特图片-HSTS 缓存冲突排查与解决指南.html"}, {"title": "HeaderEditor CORS 头修改策略 · 实战总结", "date": "2026-02-24", "tags": "Chrome调试, HeaderEditor, 跨域", "summary": "判断 ACAO 的值", "link": "reviews/2026-02-24_HeaderEditor CORS 头修改策略 · 实战总结.html"}];
-
     function renderTable(data) {
         const tbody = document.getElementById('tableBody');
         if (!data || data.length === 0) {
@@ -174,7 +172,6 @@
         }
         let html = '';
         data.forEach(item => {
-            // 标签渲染
             let tagsHtml = '';
             if (item.tags) {
                 item.tags.split(/[ ,]+/).forEach(tag => {
@@ -236,12 +233,10 @@
         renderTable(filtered);
     }
 
-    // 绑定事件
     document.getElementById('searchInput').addEventListener('input', filterAndSort);
     document.getElementById('tagFilter').addEventListener('input', filterAndSort);
     document.getElementById('sortSelect').addEventListener('change', filterAndSort);
 
-    // 初始渲染
     filterAndSort();
 </script>
 </body>
