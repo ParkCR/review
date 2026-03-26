@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 """
 复盘手册索引生成器
-扫描 reviews/ 文件夹下的所有 .html 文件，提取元数据，生成带搜索/筛选/排序功能的 index.html
+扫描 reviews/ 文件夹下的所有 .html 文件，提取元数据，生成 index.html 和 data.js
 """
 
 import os
@@ -14,8 +14,9 @@ from html import escape
 
 # ========== 可配置参数 ==========
 REVIEWS_DIR = Path("reviews")          # 存放复盘文件的目录
-OUTPUT_FILE = Path("index.html")       # 输出的索引文件名
-DATE_PATTERN = r"(\d{4}-\d{2}-\d{2})_" # 文件名中日期部分的模式（第一个捕获组是日期）
+OUTPUT_HTML = Path("index.html")       # 输出的索引文件名
+OUTPUT_DATA = Path("data.js")          # 输出的数据文件名
+DATE_PATTERN = r"(\d{4}-\d{2}-\d{2})[-_]"  # 支持 - 或 _ 作为分隔符
 TAG_PATTERN = r"<!--\s*tags:\s*(.+?)\s*-->"          # 标签注释正则
 SUMMARY_PATTERN = r"<!--\s*summary:\s*(.+?)\s*-->"   # 摘要注释正则
 DEFAULT_SUMMARY = "无摘要"
@@ -80,51 +81,18 @@ def parse_filename(filename):
         title = stem
     return date, title
 
-def generate_index():
-    """
-    主函数：扫描文件，构建数据，生成index.html
-    """
-    # 确保 reviews 目录存在
-    if not REVIEWS_DIR.exists():
-        print(f"⚠️ 目录 {REVIEWS_DIR} 不存在，创建空目录。")
-        REVIEWS_DIR.mkdir(parents=True, exist_ok=True)
-        items = []
-    else:
-        items = []
-        for html_file in REVIEWS_DIR.glob("*.html"):
-            print(f"📄 处理: {html_file.name}")
-            date, title = parse_filename(html_file)
-            tags, summary = extract_metadata(html_file)
-
-            # 相对路径（假设 index.html 与 reviews 同级）
-            link = f"reviews/{html_file.name}"
-
-            items.append({
-                "title": title,
-                "date": date,
-                "tags": tags,
-                "summary": summary,
-                "link": link
-            })
-
-    # 按日期倒序（最新的在前）
-    items.sort(key=lambda x: x["date"], reverse=True)
-
-    # 生成 HTML 内容
-    html_content = generate_html(items)
-    with open(OUTPUT_FILE, 'w', encoding='utf-8') as f:
-        f.write(html_content)
-
-    print(f"✅ 生成 {OUTPUT_FILE} 完成，共 {len(items)} 条记录")
+def generate_data_js(items):
+    """生成 data.js 文件"""
+    data_js_content = f"const reviewData = {json.dumps(items, ensure_ascii=False, indent=2)};"
+    with open(OUTPUT_DATA, 'w', encoding='utf-8') as f:
+        f.write(data_js_content)
+    print(f"✅ 生成 {OUTPUT_DATA} 完成")
 
 def generate_html(items):
     """
     根据数据生成完整的 index.html 内容
     """
-    # 将数据转为 JSON，用于前端动态渲染
-    data_json = json.dumps(items, ensure_ascii=False)
-
-    # HTML 模板（包含样式、搜索、标签筛选、排序）
+    # HTML 模板（样式和逻辑）
     html_template = f"""<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
@@ -278,21 +246,19 @@ def generate_html(items):
     <div style="overflow-x: auto;">
         <table id="review-table">
             <thead>
-                <tr><th>标题</th><th>日期</th><th>标签</th><th>摘要</th></tr>
-            </thead>
+                <tr><th>标题</th><th>日期</th><th>标签</th><th>摘要</th></thead>
             <tbody id="tableBody">
-                <tr class="empty-row"><td colspan="4">加载中...</td></tr>
+                <tr class="empty-row"><td colspan="4">加载中... </td></tr>
             </tbody>
-        </table>
+         </table>
     </div>
     <div class="footer">
         💡 提示：每条记录对应一个复盘 HTML 文件，文件名格式建议 <code>YYYY-MM-DD_主题.html</code>，可在文件内添加 <code>&lt;!-- tags: 标签1 标签2 --&gt;</code> 和 <code>&lt;!-- summary: 摘要 --&gt;</code> 注释以丰富信息。
     </div>
 </div>
 
+<script src="data.js"></script>
 <script>
-    const reviewData = {data_json};
-
     function renderTable(data) {{
         const tbody = document.getElementById('tableBody');
         if (!data || data.length === 0) {{
@@ -301,7 +267,6 @@ def generate_html(items):
         }}
         let html = '';
         data.forEach(item => {{
-            // 标签渲染
             let tagsHtml = '';
             if (item.tags) {{
                 item.tags.split(/[ ,]+/).forEach(tag => {{
@@ -363,18 +328,56 @@ def generate_html(items):
         renderTable(filtered);
     }}
 
-    // 绑定事件
     document.getElementById('searchInput').addEventListener('input', filterAndSort);
     document.getElementById('tagFilter').addEventListener('input', filterAndSort);
     document.getElementById('sortSelect').addEventListener('change', filterAndSort);
 
-    // 初始渲染
     filterAndSort();
 </script>
 </body>
 </html>
 """
     return html_template
+
+def generate_index():
+    """
+    主函数：扫描文件，构建数据，生成 index.html 和 data.js
+    """
+    # 确保 reviews 目录存在
+    if not REVIEWS_DIR.exists():
+        print(f"⚠️ 目录 {REVIEWS_DIR} 不存在，创建空目录。")
+        REVIEWS_DIR.mkdir(parents=True, exist_ok=True)
+        items = []
+    else:
+        items = []
+        for html_file in REVIEWS_DIR.glob("*.html"):
+            print(f"📄 处理: {html_file.name}")
+            date, title = parse_filename(html_file)
+            tags, summary = extract_metadata(html_file)
+
+            # 相对路径（假设 index.html 与 reviews 同级）
+            link = f"reviews/{html_file.name}"
+
+            items.append({
+                "title": title,
+                "date": date,
+                "tags": tags,
+                "summary": summary,
+                "link": link
+            })
+
+    # 按日期倒序（最新的在前）
+    items.sort(key=lambda x: x["date"], reverse=True)
+
+    # 生成 data.js
+    generate_data_js(items)
+
+    # 生成 index.html
+    html_content = generate_html(items)
+    with open(OUTPUT_HTML, 'w', encoding='utf-8') as f:
+        f.write(html_content)
+
+    print(f"✅ 生成 {OUTPUT_HTML} 完成，共 {len(items)} 条记录")
 
 if __name__ == "__main__":
     generate_index()
