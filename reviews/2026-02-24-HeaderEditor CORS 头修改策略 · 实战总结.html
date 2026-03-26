@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🌐 CORS 头修改策略 · 实战总结</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        body {
+            font-family: 'Segoe UI', Roboto, system-ui, -apple-system, sans-serif;
+            background: #f4f7fb;
+            padding: 2rem 1rem;
+            color: #1e293b;
+            line-height: 1.5;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 2rem;
+            box-shadow: 0 20px 40px -12px rgba(0,20,40,0.25);
+            overflow: hidden;
+            padding: 2rem 2rem 2.5rem;
+        }
+        h1 {
+            font-size: 2.2rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 0.25rem;
+            color: #0f172a;
+            border-left: 8px solid #3b82f6;
+            padding-left: 1.2rem;
+        }
+        .subhead {
+            font-size: 1.1rem;
+            color: #475569;
+            margin-bottom: 2rem;
+            margin-top: 0.5rem;
+            padding-left: 2rem;
+            border-bottom: 1px dashed #cbd5e1;
+            padding-bottom: 0.75rem;
+        }
+        .highlight {
+            background: #dbeafe;
+            color: #1e40af;
+            font-weight: 600;
+            padding: 0.2rem 0.5rem;
+            border-radius: 0.5rem;
+        }
+        .card-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1.5rem;
+            margin: 2rem 0;
+        }
+        .card {
+            background: #f8fafc;
+            border-radius: 1.5rem;
+            padding: 1.5rem 1.2rem;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.02);
+            border: 1px solid #e2e8f0;
+            transition: all 0.1s ease;
+        }
+        .card:hover {
+            border-color: #94a3b8;
+        }
+        .card h3 {
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+            font-size: 1.3rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            color: #0f172a;
+        }
+        .badge {
+            background: #3b82f6;
+            color: white;
+            font-size: 0.75rem;
+            font-weight: 500;
+            padding: 0.2rem 0.8rem;
+            border-radius: 20px;
+            letter-spacing: 0.3px;
+            display: inline-block;
+        }
+        .code {
+            background: #1e293b;
+            color: #e2e8f0;
+            padding: 0.3rem 0.8rem;
+            border-radius: 30px;
+            font-family: 'JetBrains Mono', 'Fira Code', monospace;
+            font-size: 0.85rem;
+            display: inline-block;
+            margin: 0.2rem 0;
+        }
+        .url-example {
+            word-break: break-all;
+            background: #eef2f6;
+            padding: 0.5rem 1rem;
+            border-radius: 2rem;
+            font-size: 0.85rem;
+            font-family: monospace;
+            border: 1px solid #cbd5e1;
+            margin: 1rem 0;
+        }
+        .comparison-table {
+            margin: 2.5rem 0 1.5rem;
+            border-radius: 1.5rem;
+            overflow: hidden;
+            border: 1px solid #e2e8f0;
+        }
+        .comparison-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        .comparison-row:last-child {
+            border-bottom: none;
+        }
+        .comp-item {
+            padding: 1.2rem 1.8rem;
+            background: white;
+        }
+        .comp-item.header {
+            background: #f1f5f9;
+            font-weight: 700;
+            font-size: 1.2rem;
+            color: #0f172a;
+        }
+        .comp-item:nth-child(odd) {
+            border-right: 1px solid #e2e8f0;
+        }
+        .check-yes {
+            color: #15803d;
+            font-weight: 600;
+        }
+        .check-no {
+            color: #b91c1c;
+            font-weight: 600;
+        }
+        .flow-step {
+            display: flex;
+            align-items: flex-start;
+            gap: 1rem;
+            margin: 1.5rem 0;
+            background: #f1f5f9;
+            padding: 1rem 1.5rem;
+            border-radius: 2rem;
+        }
+        .step-num {
+            background: #3b82f6;
+            color: white;
+            width: 2rem;
+            height: 2rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            font-weight: 700;
+            flex-shrink: 0;
+        }
+        .arrow-symbol {
+            font-size: 2rem;
+            color: #64748b;
+            margin: 0 0.5rem;
+        }
+        .tip {
+            background: #fffbeb;
+            border-left: 6px solid #f59e0b;
+            padding: 1.2rem 2rem;
+            border-radius: 1rem;
+            margin: 2rem 0;
+        }
+        footer {
+            margin-top: 3rem;
+            text-align: center;
+            color: #64748b;
+            font-size: 0.9rem;
+        }
+        hr {
+            border: none;
+            border-top: 2px dotted #cbd5e1;
+            margin: 2rem 0;
+        }
+        @media (max-width: 700px) {
+            .container { padding: 1.5rem; }
+            h1 { font-size: 1.8rem; }
+            .comparison-row { grid-template-columns: 1fr; }
+            .comp-item:nth-child(odd) { border-right: none; }
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>🧩 CORS 绕过实战 · 从请求头到响应头的思维转变</h1>
+    <div class="subhead">基于 `javtrailers.com` 与 `supjav.com` 的真实案例 · 2026.02.24</div>
+
+    <!-- 问题简述卡片 -->
+    <div style="background: #eff6ff; border-radius: 1.5rem; padding: 1.5rem 2rem; margin-bottom: 2rem;">
+        <div style="display: flex; gap: 1rem; flex-wrap: wrap; align-items: center;">
+            <span style="background: #2563eb; color: white; padding: 0.3rem 1.2rem; border-radius: 40px; font-weight: 600;">❌ 初始错误</span>
+            <span class="code" style="background: #1e293b;">Access to XMLHttpRequest at 'https://media.javtrailers.com/...' from origin 'https://supjav.com' blocked by CORS</span>
+        </div>
+        <p style="margin-top: 1.2rem; font-size: 1.1rem;">服务器返回的 <strong class="highlight">Access-Control-Allow-Origin: https://javtrailers.com</strong> 与当前页面源 <code>https://supjav.com</code> 不匹配，浏览器拒绝解析资源。</p>
+    </div>
+
+    <!-- 流程概览：尝试与转折 -->
+    <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; background: #f8fafc; border-radius: 3rem; padding: 1rem 2rem; margin: 2rem 0;">
+        <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+            <span class="badge">1️⃣ 初次尝试</span>
+            <span>修改请求头</span>
+            <span style="font-size: 1.5rem;">↪️</span>
+            <span class="code">Origin</span> <span>+</span> <span class="code">Referer</span>
+            <span style="color: #b91c1c; font-weight: 700;">❌ 无效</span>
+        </div>
+        <div class="arrow-symbol">→</div>
+        <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+            <span class="badge" style="background: #16a34a;">✅ 决胜一招</span>
+            <span>修改响应头</span>
+            <span class="code">Access-Control-Allow-Origin: *</span>
+            <span style="color: #15803d; font-weight: 700;">✨ 成功</span>
+        </div>
+    </div>
+
+    <!-- 核心对比：请求头 vs 响应头 -->
+    <h2 style="margin-top: 2.5rem; display: flex; gap: 0.5rem;">⚖️ 为什么修改响应头有效，而修改请求头无效？</h2>
+    <div class="comparison-table">
+        <div class="comparison-row">
+            <div class="comp-item header">📤 修改请求头 (Request headers)</div>
+            <div class="comp-item header">📥 修改响应头 (Response headers)</div>
+        </div>
+        <div class="comparison-row">
+            <div class="comp-item">
+                <span style="font-weight: 600;">目标：</span> 欺骗服务器，让它返回正确的 ACAO<br>
+                <small>（例如把 Origin 改成 <code>https://javtrailers.com</code>）</small>
+            </div>
+            <div class="comp-item">
+                <span style="font-weight: 600;">目标：</span> 直接篡改服务器返回的 ACAO，让浏览器满意<br>
+                <small>（例如把 ACAO 改成 <code>*</code> 或 <code>https://supjav.com</code>）</small>
+            </div>
+        </div>
+        <div class="comparison-row">
+            <div class="comp-item">
+                <span class="check-no">✖ 浏览器限制：</span> 大多数现代浏览器禁止扩展修改 <code>Origin</code> 头（安全原因）。
+            </div>
+            <div class="comp-item">
+                <span class="check-yes">✔ 浏览器允许：</span> 扩展可以修改响应头，浏览器完全信任修改后的内容。
+            </div>
+        </div>
+        <div class="comparison-row">
+            <div class="comp-item">
+                <span class="check-no">✖ 服务器策略固定：</span> 服务器返回的 ACAO 是硬编码的 <code>https://javtrailers.com</code>，不随请求头变化。
+            </div>
+            <div class="comp-item">
+                <span class="check-yes">✔ 直接覆盖：</span> 响应头到达浏览器前被改写，浏览器看到的就是新值。
+            </div>
+        </div>
+        <div class="comparison-row">
+            <div class="comp-item">
+                <span>适用场景举例：</span> 防盗链 (Referer)、身份认证 (Authorization)、模拟 UA。
+            </div>
+            <div class="comp-item">
+                <span>适用场景举例：</span> <strong>绕过 CORS 固定策略</strong>、修改缓存策略、注入内容。
+            </div>
+        </div>
+    </div>
+
+    <!-- 正常请求的抓包证据 -->
+    <div class="tip">
+        <p style="font-weight: 700; font-size: 1.2rem;">🔍 现场还原：服务器正常响应头</p>
+        <div class="url-example">🔗 GET https://media.javtrailers.com/hlsvideo/freepv/s/son/sone00284/sone00284mmb.m3u8</div>
+        <pre style="background: #0f172a; color: #a5f3fc; padding: 1rem; border-radius: 1rem; overflow-x: auto; font-size: 0.85rem;">Access-Control-Allow-Origin: https://javtrailers.com   ← 固定值！
+Referer: https://javtrailers.com/
+Origin: https://javtrailers.com</pre>
+        <p style="margin-top: 0.5rem;">✅ 服务器只认准 <code>https://javtrailers.com</code>，无论请求头如何，ACAO 始终不变。</p>
+    </div>
+
+    <!-- 决策流程图 -->
+    <h2 style="margin: 2rem 0 1rem;">🧭 遇到 CORS 错误的排查指南</h2>
+    <div style="background: linear-gradient(145deg, #f1f5f9, #ffffff); border-radius: 2rem; padding: 2rem;">
+        <div class="flow-step">
+            <div class="step-num">1</div>
+            <div><strong>打开 DevTools (F12) → Network</strong>，找到被 CORS 阻止的请求。</div>
+        </div>
+        <div class="flow-step">
+            <div class="step-num">2</div>
+            <div><strong>查看响应头</strong>，找到 <code>Access-Control-Allow-Origin</code> (ACAO) 字段。</div>
+        </div>
+        <div class="flow-step">
+            <div class="step-num">3</div>
+            <div>
+                <p>⬇️ <strong>判断 ACAO 的值：</strong></p>
+                <ul style="margin-left: 1.5rem; list-style-type: circle;">
+                    <li>如果 ACAO 是 <code>*</code> 或已包含你的源 → 问题可能出在其他地方（凭证、预检等）。</li>
+                    <li>如果 ACAO 是<strong>固定的其他域名</strong>（如本例 <code>https://javtrailers.com</code>）→ <span style="background: #fbbf24; padding: 0.2rem 0.6rem; border-radius: 2rem;">🎯 优先尝试修改响应头</span></li>
+                </ul>
+            </div>
+        </div>
+        <div class="flow-step">
+            <div class="step-num">4</div>
+            <div>
+                <strong>修改响应头</strong>：使用 Header Editor 等扩展，将 ACAO 覆盖为 <code>*</code> 或你的源。<br>
+                <span style="font-size: 0.9rem; color: #334155;">规则类型：修改响应头 | 匹配域名 media.javtrailers.com | 头名称 Access-Control-Allow-Origin | 头内容 *</span>
+            </div>
+        </div>
+        <div class="flow-step">
+            <div class="step-num">5</div>
+            <div>✅ 成功加载资源。若仍失败，再考虑修改请求头（Referer、带认证等）辅助。</div>
+        </div>
+    </div>
+
+    <!-- 适用场景速查表 -->
+    <h2 style="margin-top: 2.5rem;">📋 什么时候用请求头，什么时候用响应头？</h2>
+    <div class="card-grid">
+        <div class="card">
+            <h3>🔧 修改请求头</h3>
+            <ul style="list-style-type: none; padding-left: 0;">
+                <li style="margin-bottom: 0.8rem;">✅ <strong>绕过 Referer 防盗链</strong>（图片/视频）</li>
+                <li style="margin-bottom: 0.8rem;">✅ <strong>添加认证凭据</strong>：Authorization、Cookie</li>
+                <li style="margin-bottom: 0.8rem;">✅ <strong>修改 User-Agent</strong> 模拟设备</li>
+                <li style="margin-bottom: 0.8rem;">✅ <strong>控制 Accept 类型</strong>（如请求 JSON）</li>
+                <li style="margin-bottom: 0.8rem;">⚠️ 对 CORS 核心限制（ACAO）通常无效</li>
+            </ul>
+        </div>
+        <div class="card">
+            <h3>🛡️ 修改响应头</h3>
+            <ul style="list-style-type: none; padding-left: 0;">
+                <li style="margin-bottom: 0.8rem;">✅ <strong>绕过 ACAO 固定策略</strong>（CORS 王牌）</li>
+                <li style="margin-bottom: 0.8rem;">✅ <strong>强制启用/禁用缓存</strong> (Cache-Control)</li>
+                <li style="margin-bottom: 0.8rem;">✅ <strong>修改 Content-Type 或字符集</strong></li>
+                <li style="margin-bottom: 0.8rem;">✅ <strong>注入自定义头</strong>（如 CSP 放松）</li>
+                <li style="margin-bottom: 0.8rem;">💡 对服务器透明，只影响本地浏览器</li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- 成功配置复盘 -->
+    <hr>
+    <div style="background: #ecfdf5; border-radius: 2rem; padding: 1.8rem; border: 1px solid #a7f3d0;">
+        <p style="font-size: 1.4rem; font-weight: 600; color: #065f46; margin-bottom: 1rem;">✨ 本次实战成功配置 (Header Editor)</p>
+        <div style="display: flex; flex-wrap: wrap; gap: 2rem;">
+            <div>
+                <span class="badge" style="background: #059669;">规则类型</span> 修改响应头<br>
+                <span class="badge" style="background: #059669;">匹配类型</span> 正则表达式 / 域名<br>
+                <span class="badge" style="background: #059669;">匹配规则</span> <code>^https?://media\.javtrailers\.com/.*</code><br>
+            </div>
+            <div>
+                <span class="badge" style="background: #059669;">头名称</span> <code>Access-Control-Allow-Origin</code><br>
+                <span class="badge" style="background: #059669;">头内容</span> <code>*</code> 或 <code>https://supjav.com</code><br>
+                <span class="badge" style="background: #059669;">结果</span> <strong>🎉 视频流顺利加载</strong>
+            </div>
+        </div>
+    </div>
+
+    <!-- 核心收获 -->
+    <div style="margin-top: 2.5rem; background: #faf5ff; border-radius: 1.5rem; padding: 1.5rem 2rem;">
+        <h3 style="display: flex; gap: 0.5rem; color: #6b21a8;">📌 核心收获</h3>
+        <ul style="list-style-type: none;">
+            <li style="margin-bottom: 0.8rem;">🧠 <strong>CORS 的最终判断在浏览器</strong> —— 浏览器检查的是响应头 ACAO，不是请求头。</li>
+            <li style="margin-bottom: 0.8rem;">🔓 <strong>修改响应头是绕过固定 ACAO 的最直接路径</strong>，请求头修改往往因安全限制失效。</li>
+            <li style="margin-bottom: 0.8rem;">🔁 遇到跨域问题，先看响应头 ACAO 是否固定；固定则改响应头，动态则可能需改请求头（如带认证）。</li>
+            <li style="margin-bottom: 0.8rem;">⚡ Header Editor 这类工具可以同时修改请求头和响应头，但需要根据场景灵活选用。</li>
+        </ul>
+    </div>
+
+    <!-- 结语 -->
+    <footer>
+        ⚡ 基于真实案例总结 · 下次遇到 CORS，先看响应头 ACAO，再决定动哪一头 ⚡<br>
+        <span style="opacity: 0.7;">📅 2026.02.24 · 与 supjav 视频预告片脚本的恩怨情仇</span>
+    </footer>
+</div>
+</body>
+</html>
