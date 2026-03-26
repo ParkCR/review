@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>复盘手册索引</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: system-ui, -apple-system, 'Segoe UI', 'Inter', sans-serif;
+            background: #f5f7fb;
+            padding: 2rem 1.5rem;
+            color: #1e293b;
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        h1 {
+            font-size: 1.8rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #1e293b, #3b82f6);
+            background-clip: text;
+            -webkit-background-clip: text;
+            color: transparent;
+            margin-bottom: 0.5rem;
+        }
+        .sub {
+            color: #475569;
+            margin-bottom: 2rem;
+            border-left: 3px solid #3b82f6;
+            padding-left: 1rem;
+        }
+        .filter-bar {
+            background: white;
+            border-radius: 20px;
+            padding: 1rem 1.5rem;
+            margin-bottom: 1.5rem;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1rem;
+            align-items: center;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+            border: 1px solid #e2e8f0;
+        }
+        .filter-bar input, .filter-bar select {
+            padding: 0.6rem 1rem;
+            border: 1px solid #cbd5e1;
+            border-radius: 40px;
+            font-size: 0.9rem;
+            outline: none;
+            transition: 0.2s;
+        }
+        .filter-bar input:focus, .filter-bar select:focus {
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 2px rgba(59,130,246,0.2);
+        }
+        .search-box {
+            flex: 2;
+            min-width: 200px;
+        }
+        .tag-filter-box {
+            flex: 1;
+            min-width: 150px;
+        }
+        .sort-box {
+            min-width: 130px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+            border-radius: 20px;
+            overflow: hidden;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+        }
+        th, td {
+            text-align: left;
+            padding: 1rem;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        th {
+            background: #f8fafc;
+            font-weight: 600;
+            color: #1e293b;
+        }
+        tr:hover {
+            background: #fefce8;
+        }
+        .tag {
+            display: inline-block;
+            background: #eef2ff;
+            color: #1e4a76;
+            padding: 0.2rem 0.6rem;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 500;
+            margin-right: 0.4rem;
+            margin-bottom: 0.2rem;
+        }
+        a {
+            color: #1e4a76;
+            text-decoration: none;
+            font-weight: 500;
+        }
+        a:hover {
+            text-decoration: underline;
+        }
+        .empty-row td {
+            text-align: center;
+            padding: 3rem;
+            color: #64748b;
+        }
+        .footer {
+            margin-top: 2rem;
+            text-align: center;
+            font-size: 0.75rem;
+            color: #64748b;
+        }
+        @media (max-width: 700px) {
+            body { padding: 1rem; }
+            th, td { padding: 0.75rem; }
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>📚 复盘手册索引</h1>
+    <div class="sub">由 GitHub Actions 自动生成 · 支持搜索、标签筛选、排序</div>
+
+    <div class="filter-bar">
+        <div class="search-box">
+            <input type="text" id="searchInput" placeholder="🔍 搜索标题 / 标签 / 摘要" autocomplete="off">
+        </div>
+        <div class="tag-filter-box">
+            <input type="text" id="tagFilter" placeholder="🏷️ 筛选标签 (多个用空格)" autocomplete="off">
+        </div>
+        <div class="sort-box">
+            <select id="sortSelect">
+                <option value="date-desc">📅 日期新 → 旧</option>
+                <option value="date-asc">📅 日期旧 → 新</option>
+                <option value="title-asc">🔤 标题 A → Z</option>
+            </select>
+        </div>
+    </div>
+
+    <div style="overflow-x: auto;">
+        <table id="review-table">
+            <thead>
+                <tr><th>标题</th><th>日期</th><th>标签</th><th>摘要</th></tr>
+            </thead>
+            <tbody id="tableBody">
+                <tr class="empty-row"><td colspan="4">加载中...</td></tr>
+            </tbody>
+        </table>
+    </div>
+    <div class="footer">
+        💡 提示：每条记录对应一个复盘 HTML 文件，文件名格式建议 <code>YYYY-MM-DD_主题.html</code>，可在文件内添加 <code>&lt;!-- tags: 标签1 标签2 --&gt;</code> 和 <code>&lt;!-- summary: 摘要 --&gt;</code> 注释以丰富信息。
+    </div>
+</div>
+
+<script>
+    const reviewData = [{"title": "2026-02-24-HeaderEditor CORS 头修改策略 · 实战总结", "date": "未知日期", "tags": "", "summary": "⬇️ 判断 ACAO 的值：", "link": "reviews/2026-02-24-HeaderEditor CORS 头修改策略 · 实战总结.html"}, {"title": "2026-03-25-推特图片-HSTS 缓存冲突排查与解决指南", "date": "未知日期", "tags": "", "summary": "用户在修改本地 hosts 文件以指定特定域名（如推特图片服务器 pbs.twimg.com）的 IP 地址后，发现 Chrome 浏览器 无法加载图片，提示安全错误或直接拦截，而 Edge 浏览器 或其他设备却能正常访问。", "link": "reviews/2026-03-25-推特图片-HSTS 缓存冲突排查与解决指南.html"}];
+
+    function renderTable(data) {
+        const tbody = document.getElementById('tableBody');
+        if (!data || data.length === 0) {
+            tbody.innerHTML = '<tr class="empty-row"><td colspan="4">📭 没有匹配的复盘手册</td></tr>';
+            return;
+        }
+        let html = '';
+        data.forEach(item => {
+            // 标签渲染
+            let tagsHtml = '';
+            if (item.tags) {
+                item.tags.split(/[ ,]+/).forEach(tag => {
+                    if (tag.trim()) tagsHtml += `<span class="tag">${escapeHtml(tag)}</span>`;
+                });
+            }
+            html += `
+                <tr>
+                    <td><a href="${escapeHtml(item.link)}" target="_blank">${escapeHtml(item.title)}</a></td>
+                    <td>${escapeHtml(item.date)}</td>
+                    <td>${tagsHtml || '—'}</td>
+                    <td>${escapeHtml(item.summary.substring(0, 120))}${item.summary.length > 120 ? '…' : ''}</td>
+                </tr>
+            `;
+        });
+        tbody.innerHTML = html;
+    }
+
+    function escapeHtml(str) {
+        if (!str) return '';
+        return str.replace(/[&<>]/g, function(m) {
+            if (m === '&') return '&amp;';
+            if (m === '<') return '&lt;';
+            if (m === '>') return '&gt;';
+            return m;
+        });
+    }
+
+    function filterAndSort() {
+        let filtered = [...reviewData];
+        const keyword = document.getElementById('searchInput').value.trim().toLowerCase();
+        const tagQuery = document.getElementById('tagFilter').value.trim().toLowerCase();
+
+        if (keyword) {
+            filtered = filtered.filter(item =>
+                item.title.toLowerCase().includes(keyword) ||
+                item.tags.toLowerCase().includes(keyword) ||
+                item.summary.toLowerCase().includes(keyword)
+            );
+        }
+        if (tagQuery) {
+            const tagList = tagQuery.split(/[ ,]+/).filter(t => t.length > 0);
+            if (tagList.length) {
+                filtered = filtered.filter(item => {
+                    const itemTags = item.tags.toLowerCase();
+                    return tagList.some(tag => itemTags.includes(tag));
+                });
+            }
+        }
+
+        const sortBy = document.getElementById('sortSelect').value;
+        if (sortBy === 'date-desc') {
+            filtered.sort((a, b) => new Date(b.date) - new Date(a.date));
+        } else if (sortBy === 'date-asc') {
+            filtered.sort((a, b) => new Date(a.date) - new Date(b.date));
+        } else if (sortBy === 'title-asc') {
+            filtered.sort((a, b) => a.title.localeCompare(b.title, 'zh-CN'));
+        }
+        renderTable(filtered);
+    }
+
+    // 绑定事件
+    document.getElementById('searchInput').addEventListener('input', filterAndSort);
+    document.getElementById('tagFilter').addEventListener('input', filterAndSort);
+    document.getElementById('sortSelect').addEventListener('change', filterAndSort);
+
+    // 初始渲染
+    filterAndSort();
+</script>
+</body>
+</html>
