@@ -23,10 +23,7 @@ DEFAULT_SUMMARY = "无摘要"
 # ================================
 
 def extract_metadata(html_path):
-    """
-    从HTML文件中提取元数据（标签、摘要）
-    返回: (tags_str, summary_str)
-    """
+    """从HTML文件中提取元数据（标签、摘要）"""
     tags = ""
     summary = DEFAULT_SUMMARY
     try:
@@ -36,20 +33,14 @@ def extract_metadata(html_path):
         print(f"⚠️ 无法读取文件 {html_path.name}: {e}")
         return tags, summary
 
-    # 提取标签
     tag_match = re.search(TAG_PATTERN, content, re.IGNORECASE)
     if tag_match:
         tags = tag_match.group(1).strip()
-    else:
-        # 可选：如果希望默认从文件名中提取一些标签，可在此扩展
-        pass
 
-    # 提取摘要
     summary_match = re.search(SUMMARY_PATTERN, content, re.IGNORECASE)
     if summary_match:
         summary = summary_match.group(1).strip()
     else:
-        # 如果没找到注释，尝试取第一个 <p> 标签内的文本
         p_match = re.search(r'<p>(.*?)</p>', content, re.DOTALL | re.IGNORECASE)
         if p_match:
             summary = re.sub(r'<[^>]+>', '', p_match.group(1)).strip()[:150]
@@ -58,16 +49,12 @@ def extract_metadata(html_path):
     return tags, summary
 
 def parse_filename(filename):
-    """
-    从文件名解析日期和标题
-    返回: (date_str, title_str)
-    """
+    """从文件名解析日期和标题"""
     stem = filename.stem
     match = re.match(DATE_PATTERN, stem)
     if match:
         date_candidate = match.group(1)
         try:
-            # 验证是否为有效日期
             datetime.strptime(date_candidate, "%Y-%m-%d")
             date = date_candidate
             title = stem[len(match.group(0)):].replace('_', ' ').strip()
@@ -89,10 +76,7 @@ def generate_data_js(items):
     print(f"✅ 生成 {OUTPUT_DATA} 完成")
 
 def generate_html(items):
-    """
-    根据数据生成完整的 index.html 内容
-    """
-    # HTML 模板（样式和逻辑）
+    """生成带搜索框清空按钮和标签点击筛选的 index.html"""
     html_template = f"""<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
@@ -100,21 +84,14 @@ def generate_html(items):
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>复盘手册索引</title>
     <style>
-        * {{
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }}
+        * {{ margin: 0; padding: 0; box-sizing: border-box; }}
         body {{
             font-family: system-ui, -apple-system, 'Segoe UI', 'Inter', sans-serif;
             background: #f5f7fb;
             padding: 2rem 1.5rem;
             color: #1e293b;
         }}
-        .container {{
-            max-width: 1400px;
-            margin: 0 auto;
-        }}
+        .container {{ max-width: 1400px; margin: 0 auto; }}
         h1 {{
             font-size: 1.8rem;
             font-weight: 700;
@@ -142,28 +119,65 @@ def generate_html(items):
             box-shadow: 0 1px 2px rgba(0,0,0,0.05);
             border: 1px solid #e2e8f0;
         }}
-        .filter-bar input, .filter-bar select {{
-            padding: 0.6rem 1rem;
+        .search-box {{
+            flex: 2;
+            min-width: 200px;
+            position: relative;
+        }}
+        .search-box input {{
+            width: 100%;
+            padding: 0.6rem 2rem 0.6rem 1rem;
             border: 1px solid #cbd5e1;
             border-radius: 40px;
             font-size: 0.9rem;
             outline: none;
             transition: 0.2s;
         }}
-        .filter-bar input:focus, .filter-bar select:focus {{
+        .search-box input:focus {{
             border-color: #3b82f6;
             box-shadow: 0 0 0 2px rgba(59,130,246,0.2);
         }}
-        .search-box {{
-            flex: 2;
-            min-width: 200px;
+        .clear-search {{
+            position: absolute;
+            right: 0.8rem;
+            top: 50%;
+            transform: translateY(-50%);
+            cursor: pointer;
+            color: #94a3b8;
+            font-size: 1rem;
+            font-weight: bold;
+            background: none;
+            border: none;
+            padding: 0;
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            transition: background 0.2s;
+            background: rgba(0,0,0,0.05);
+        }}
+        .clear-search:hover {{
+            background: #e2e8f0;
+            color: #1e293b;
         }}
         .tag-filter-box {{
             flex: 1;
             min-width: 150px;
         }}
-        .sort-box {{
-            min-width: 130px;
+        .tag-filter-box input {{
+            width: 100%;
+            padding: 0.6rem 1rem;
+            border: 1px solid #cbd5e1;
+            border-radius: 40px;
+            font-size: 0.9rem;
+        }}
+        .sort-box select {{
+            padding: 0.6rem 1rem;
+            border: 1px solid #cbd5e1;
+            border-radius: 40px;
+            font-size: 0.9rem;
         }}
         table {{
             width: 100%;
@@ -173,19 +187,9 @@ def generate_html(items):
             overflow: hidden;
             box-shadow: 0 1px 2px rgba(0,0,0,0.05);
         }}
-        th, td {{
-            text-align: left;
-            padding: 1rem;
-            border-bottom: 1px solid #e2e8f0;
-        }}
-        th {{
-            background: #f8fafc;
-            font-weight: 600;
-            color: #1e293b;
-        }}
-        tr:hover {{
-            background: #fefce8;
-        }}
+        th, td {{ text-align: left; padding: 1rem; border-bottom: 1px solid #e2e8f0; }}
+        th {{ background: #f8fafc; font-weight: 600; color: #1e293b; }}
+        tr:hover {{ background: #fefce8; }}
         .tag {{
             display: inline-block;
             background: #eef2ff;
@@ -196,40 +200,26 @@ def generate_html(items):
             font-weight: 500;
             margin-right: 0.4rem;
             margin-bottom: 0.2rem;
+            cursor: pointer;
+            transition: background 0.2s;
         }}
-        a {{
-            color: #1e4a76;
-            text-decoration: none;
-            font-weight: 500;
-        }}
-        a:hover {{
-            text-decoration: underline;
-        }}
-        .empty-row td {{
-            text-align: center;
-            padding: 3rem;
-            color: #64748b;
-        }}
-        .footer {{
-            margin-top: 2rem;
-            text-align: center;
-            font-size: 0.75rem;
-            color: #64748b;
-        }}
-        @media (max-width: 700px) {{
-            body {{ padding: 1rem; }}
-            th, td {{ padding: 0.75rem; }}
-        }}
+        .tag:hover {{ background: #cbdffc; }}
+        a {{ color: #1e4a76; text-decoration: none; font-weight: 500; }}
+        a:hover {{ text-decoration: underline; }}
+        .empty-row td {{ text-align: center; padding: 3rem; color: #64748b; }}
+        .footer {{ margin-top: 2rem; text-align: center; font-size: 0.75rem; color: #64748b; }}
+        @media (max-width: 700px) {{ body {{ padding: 1rem; }} th, td {{ padding: 0.75rem; }} }}
     </style>
 </head>
 <body>
 <div class="container">
     <h1>📚 复盘手册索引</h1>
-    <div class="sub">由 GitHub Actions 自动生成 · 支持搜索、标签筛选、排序</div>
+    <div class="sub">由 GitHub Actions 自动生成 · 支持搜索、标签筛选、排序 · 点击标签快速筛选 · 搜索框右侧✖一键清空</div>
 
     <div class="filter-bar">
         <div class="search-box">
             <input type="text" id="searchInput" placeholder="🔍 搜索标题 / 标签 / 摘要" autocomplete="off">
+            <span class="clear-search" id="clearSearchBtn" style="display: none;">✖</span>
         </div>
         <div class="tag-filter-box">
             <input type="text" id="tagFilter" placeholder="🏷️ 筛选标签 (多个用空格)" autocomplete="off">
@@ -245,16 +235,11 @@ def generate_html(items):
 
     <div style="overflow-x: auto;">
         <table id="review-table">
-            <thead>
-                <tr><th>标题</th><th>日期</th><th>标签</th><th>摘要</th></thead>
-            <tbody id="tableBody">
-                <tr class="empty-row"><td colspan="4">加载中... </td></tr>
-            </tbody>
-         </table>
+            <thead><tr><th>标题</th><th>日期</th><th>标签</th><th>摘要</th></tr></thead>
+            <tbody id="tableBody"><tr class="empty-row"><td colspan="4">加载中... 解决了</tbody>
+        </table>
     </div>
-    <div class="footer">
-        💡 提示：每条记录对应一个复盘 HTML 文件，文件名格式建议 <code>YYYY-MM-DD_主题.html</code>，可在文件内添加 <code>&lt;!-- tags: 标签1 标签2 --&gt;</code> 和 <code>&lt;!-- summary: 摘要 --&gt;</code> 注释以丰富信息。
-    </div>
+    <div class="footer">💡 提示：每条记录对应一个复盘 HTML 文件，文件名格式建议 <code>YYYY-MM-DD_主题.html</code>，可在文件内添加 <code>&lt;!-- tags: 标签1 标签2 --&gt;</code> 和 <code>&lt;!-- summary: 摘要 --&gt;</code> 注释以丰富信息。点击任意标签快速筛选，搜索框右侧 ✖ 可清空搜索内容。</div>
 </div>
 
 <script src="data.js"></script>
@@ -269,8 +254,12 @@ def generate_html(items):
         data.forEach(item => {{
             let tagsHtml = '';
             if (item.tags) {{
-                item.tags.split(/[ ,]+/).forEach(tag => {{
-                    if (tag.trim()) tagsHtml += `<span class="tag">${{escapeHtml(tag)}}</span>`;
+                const rawTags = item.tags.split(/[ ,]+/);
+                rawTags.forEach(tag => {{
+                    if (tag.trim()) {{
+                        const safeTag = escapeHtml(tag);
+                        tagsHtml += `<span class="tag" data-tag="${{escapeHtml(tag)}}">${{safeTag}}</span>`;
+                    }}
                 }});
             }}
             html += `
@@ -328,10 +317,52 @@ def generate_html(items):
         renderTable(filtered);
     }}
 
-    document.getElementById('searchInput').addEventListener('input', filterAndSort);
+    // 搜索框清空按钮逻辑
+    const searchInput = document.getElementById('searchInput');
+    const clearBtn = document.getElementById('clearSearchBtn');
+
+    function updateClearBtnVisibility() {{
+        if (searchInput.value.length > 0) {{
+            clearBtn.style.display = 'flex';
+        }} else {{
+            clearBtn.style.display = 'none';
+        }}
+    }}
+
+    searchInput.addEventListener('input', function() {{
+        updateClearBtnVisibility();
+        filterAndSort();
+    }});
+
+    clearBtn.addEventListener('click', function() {{
+        searchInput.value = '';
+        updateClearBtnVisibility();
+        filterAndSort();
+        searchInput.focus();
+    }});
+
+    // 标签点击筛选（事件委托）
+    document.getElementById('tableBody').addEventListener('click', function(e) {{
+        let target = e.target;
+        while (target && target !== this && !target.classList?.contains('tag')) {{
+            target = target.parentElement;
+        }}
+        if (target && target.classList.contains('tag')) {{
+            const tagValue = target.getAttribute('data-tag') || target.innerText;
+            if (tagValue) {{
+                const tagInput = document.getElementById('tagFilter');
+                tagInput.value = tagValue;
+                filterAndSort();
+            }}
+            e.preventDefault();
+        }}
+    }});
+
     document.getElementById('tagFilter').addEventListener('input', filterAndSort);
     document.getElementById('sortSelect').addEventListener('change', filterAndSort);
 
+    // 初始化
+    updateClearBtnVisibility();
     filterAndSort();
 </script>
 </body>
@@ -340,10 +371,7 @@ def generate_html(items):
     return html_template
 
 def generate_index():
-    """
-    主函数：扫描文件，构建数据，生成 index.html 和 data.js
-    """
-    # 确保 reviews 目录存在
+    """主函数：扫描文件，构建数据，生成 index.html 和 data.js"""
     if not REVIEWS_DIR.exists():
         print(f"⚠️ 目录 {REVIEWS_DIR} 不存在，创建空目录。")
         REVIEWS_DIR.mkdir(parents=True, exist_ok=True)
@@ -354,10 +382,7 @@ def generate_index():
             print(f"📄 处理: {html_file.name}")
             date, title = parse_filename(html_file)
             tags, summary = extract_metadata(html_file)
-
-            # 相对路径（假设 index.html 与 reviews 同级）
             link = f"reviews/{html_file.name}"
-
             items.append({
                 "title": title,
                 "date": date,
@@ -366,17 +391,11 @@ def generate_index():
                 "link": link
             })
 
-    # 按日期倒序（最新的在前）
     items.sort(key=lambda x: x["date"], reverse=True)
-
-    # 生成 data.js
     generate_data_js(items)
-
-    # 生成 index.html
     html_content = generate_html(items)
     with open(OUTPUT_HTML, 'w', encoding='utf-8') as f:
         f.write(html_content)
-
     print(f"✅ 生成 {OUTPUT_HTML} 完成，共 {len(items)} 条记录")
 
 if __name__ == "__main__":
