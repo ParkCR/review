@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <!-- tags: 视频下载, 防盗链, cURL, PowerShell, 一次性令牌 -->
+    <!-- summary: 解决网站Referer+Token双重防盗链的视频下载问题，通过复制浏览器请求实现 -->
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>视频防盗链突破：cURL与PowerShell实战复盘</title>
+    <meta name="content-tags" content="视频下载, 防盗链, cURL, PowerShell, 一次性令牌">
+    <meta name="summary-date" content="2026-04-20">
+    <meta name="content-type" content="对话复盘总结">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            background: #f4f7fb;
+            font-family: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+            line-height: 1.5;
+            padding: 2rem 1rem;
+            color: #1e293b;
+        }
+        .container {
+            max-width: 1280px;
+            margin: 0 auto;
+        }
+        .card {
+            background: white;
+            border-radius: 1.5rem;
+            box-shadow: 0 10px 25px -5px rgba(0,0,0,0.05), 0 8px 10px -6px rgba(0,0,0,0.02);
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            transition: all 0.2s;
+        }
+        h1 {
+            font-size: 2rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #1e3c72, #2a5298);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            margin-bottom: 0.5rem;
+        }
+        .subhead {
+            color: #4b5563;
+            border-left: 4px solid #3b82f6;
+            padding-left: 1rem;
+            margin-bottom: 1.5rem;
+            font-size: 0.95rem;
+        }
+        .tag-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.75rem;
+            margin-bottom: 1.5rem;
+        }
+        .tag {
+            background: #e0f2fe;
+            color: #0c4a6e;
+            padding: 6px 16px;
+            border-radius: 40px;
+            font-size: 0.85rem;
+            font-weight: 500;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            transition: background 0.2s;
+        }
+        .tag:hover {
+            background: #bae6fd;
+        }
+        h2 {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin: 1.5rem 0 1rem 0;
+            padding-bottom: 0.25rem;
+            border-bottom: 2px solid #e2e8f0;
+        }
+        h3 {
+            font-size: 1.2rem;
+            font-weight: 600;
+            margin: 1rem 0 0.5rem 0;
+        }
+        .highlight {
+            background: #eff6ff;
+            border-left: 4px solid #3b82f6;
+            padding: 0.75rem 1rem;
+            border-radius: 0.75rem;
+            margin: 1rem 0;
+        }
+        .grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.5rem;
+        }
+        @media (max-width: 640px) {
+            .grid-2 {
+                grid-template-columns: 1fr;
+            }
+        }
+        .comparison-card {
+            background: #f8fafc;
+            border-radius: 1rem;
+            padding: 1.25rem;
+            border: 1px solid #e2e8f0;
+        }
+        .comparison-card h4 {
+            font-size: 1.1rem;
+            margin-bottom: 0.75rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .badge-success {
+            background: #dcfce7;
+            color: #166534;
+            padding: 2px 8px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+        .badge-fail {
+            background: #fee2e2;
+            color: #991b1b;
+            padding: 2px 8px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+        pre {
+            background: #1e293b;
+            color: #e2e8f0;
+            padding: 1rem;
+            border-radius: 1rem;
+            overflow-x: auto;
+            font-family: 'SF Mono', 'Fira Code', monospace;
+            font-size: 0.85rem;
+            margin: 1rem 0;
+        }
+        code {
+            font-family: monospace;
+            background: #f1f5f9;
+            padding: 0.2rem 0.4rem;
+            border-radius: 0.375rem;
+            font-size: 0.85rem;
+            color: #0f172a;
+        }
+        pre code {
+            background: transparent;
+            padding: 0;
+            color: inherit;
+        }
+        .step-flow {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            gap: 1rem;
+            margin: 1rem 0;
+        }
+        .step {
+            flex: 1;
+            background: #f1f5f9;
+            border-radius: 1rem;
+            padding: 1rem;
+            text-align: center;
+            position: relative;
+        }
+        .step:not(:last-child):after {
+            content: "➡️";
+            position: absolute;
+            right: -1rem;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 1.2rem;
+            color: #94a3b8;
+        }
+        @media (max-width: 640px) {
+            .step:after {
+                display: none;
+            }
+        }
+        .footer-note {
+            font-size: 0.8rem;
+            color: #6c757d;
+            text-align: center;
+            margin-top: 2rem;
+            border-top: 1px solid #e2e8f0;
+            padding-top: 1rem;
+        }
+        .supplement {
+            background: #fff9e6;
+            border-left: 4px solid #fbbf24;
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem;
+            font-size: 0.85rem;
+            margin: 0.5rem 0;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="tag-list">
+        <div class="tag">🏷️ 视频下载</div>
+        <div class="tag">🔒 防盗链</div>
+        <div class="tag">🖥️ cURL</div>
+        <div class="tag">⚡ PowerShell</div>
+        <div class="tag">🎫 一次性令牌</div>
+    </div>
+
+    <h1>🔓 突破双重防盗链：从失败到成功的下载实战</h1>
+    <div class="subhead">📅 2026-04-20 · 基于 red52.kr 视频下载案例 · 核心方法：模拟浏览器完整请求</div>
+
+    <div class="card">
+        <h2>📌 问题简述</h2>
+        <div class="highlight">
+            🎯 现象：网站可以正常在线播放，但使用 IDM 捕获地址后提示“没有权限”（403 Forbidden）；<br>
+            浏览器扩展“猫抓”仅下载 5 秒无效视频；<br>
+            直接复制视频链接到 IDM 新建任务同样返回 403。<br>
+            <strong>✅ 结论：网站启用了 <code>Referer</code> + <code>一次性令牌（One-Time Token）</code> 双重防盗链。</strong>
+        </div>
+        <p>服务器要求每个请求必须携带正确的引用页，且 URL 中的令牌仅限一次使用。IDM/猫抓会发起第二次请求，导致令牌失效。</p>
+    </div>
+
+    <div class="card">
+        <h2>⚖️ 核心对比：为什么 Video DownloadHelper 成功，而 IDM/猫抓失败？</h2>
+        <div class="grid-2">
+            <div class="comparison-card">
+                <h4>❌ IDM / 猫抓（失败）</h4>
+                <ul style="margin-left: 1.2rem;">
+                    <li><strong>工作位置</strong>：外部程序 / 扩展嗅探后重新请求</li>
+                    <li><strong>请求方式</strong>：二次发起 HTTP 请求</li>
+                    <li><strong>令牌处理</strong>：浏览器首次请求已消耗令牌，IDM 再次请求时令牌失效 → 403</li>
+                    <li><strong>适用场景</strong>：无令牌或静态链接</li>
+                </ul>
+            </div>
+            <div class="comparison-card">
+                <h4>✅ Video DownloadHelper（成功）</h4>
+                <ul style="margin-left: 1.2rem;">
+                    <li><strong>工作位置</strong>：浏览器扩展，拦截网络层数据</li>
+                    <li><strong>请求方式</strong>：直接复制浏览器已收到的数据流，不发起新请求</li>
+                    <li><strong>令牌处理</strong>：与浏览器共享同一有效令牌，服务器无感知</li>
+                    <li><strong>适用场景</strong>：复杂防盗链、一次性令牌、HLS 流</li>
+                </ul>
+            </div>
+        </div>
+        <div class="supplement">
+            📌 <strong>补充说明</strong>：对话中用户还尝试了 <code>FetchV</code> 扩展，但同样不支持一次性令牌。最终通过浏览器开发者工具复制 cURL/PowerShell 命令并手动修正转义符，成功下载。
+        </div>
+    </div>
+
+    <div class="card">
+        <h2>📄 关键证据：成功下载的核心命令（完整）</h2>
+        <p>以下命令源自对话中的实际成功案例，包含完整的请求头、Cookie（含 <code>cf_clearance</code> 令牌）和 <code>Referer</code>。</p>
+        
+        <h3>✅ CMD 环境（成功案例）</h3>
+        <pre><code>curl "https://cdn.red52.kr/play/20260419/dc7f14ce-d62c-4a95-82ed-43c1fd752c06.mp4" ^
+  -H "accept: */*" ^
+  -H "accept-language: zh-CN,zh;q=0.9" ^
+  -H "cache-control: no-cache" ^
+  -b "user_device_id=9e5293cc5d924ce580aa89dfd6ee7c22; cf_clearance=95_BUgZKv3x_HSaluG3eGMVR6aPkUnq8doUiirkiRJQ-1776676427-1.2.1.1-eQYBCItj20FLg9l2iKZJVq.X_KW4mmLjZx0gYHeE5x2x4GlfkfzhDSCMHtp5mtrcIoEqiUcJP74tdPOSBCI1P4IgceadKUIppmcLzsv0dg.XU9sZyOK1GQC17y5QsSJ9ecFvsb00p3pBbcvy2smRQ.xDNYid8XfKZYlZZHKRsX_lLykT9qynoUACUgJlfL3TpUqPI0vIr.PuwMCRgN0_FcGXAqzT1NugMolKGhSarCgSOuTvi0XeuPIZooNgJyYb_ybZoQZD9N9anq0Wa1eOXzR7xaiyALSr2TvV8plzoK_rpVlMs_gdV_DOel4ZliYhJ5JT8thSOog2PBCYUOzUJw" ^
+  -H "dnt: 1" ^
+  -H "pragma: no-cache" ^
+  -H "priority: i" ^
+  -H "range: bytes=0-" ^
+  -H "referer: https://red52.kr/" ^
+  -H "sec-ch-ua: \"Chromium\";v=\"146\", \"Not-A.Brand\";v=\"24\", \"Google Chrome\";v=\"146\"" ^
+  -H "sec-ch-ua-mobile: ?0" ^
+  -H "sec-ch-ua-platform: \"Windows\"" ^
+  -H "sec-fetch-dest: video" ^
+  -H "sec-fetch-mode: no-cors" ^
+  -H "sec-fetch-site: same-site" ^
+  -H "user-agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36" ^
+  --output "%USERPROFILE%\Desktop\video.mp4"</code></pre>
+        <div class="highlight">
+            🔑 <strong>关键点</strong>：从浏览器复制 <code>cURL (cmd)</code> 格式后，必须手动删除所有的 <code>^</code> 和反斜杠转义，使双引号保持正常。
+        </div>
+
+        <h3>✅ PowerShell 环境（成功案例）</h3>
+        <pre><code>$session = New-Object Microsoft.PowerShell.Commands.WebRequestSession
+$session.UserAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36"
+$session.Cookies.Add((New-Object System.Net.Cookie("user_device_id", "9e5293cc5d924ce580aa89dfd6ee7c22", "/", ".red52.kr")))
+$session.Cookies.Add((New-Object System.Net.Cookie("cf_clearance", "95_BUgZKv3x_HSaluG3eGMVR6aPkUnq8doUiirkiRJQ-1776676427-1.2.1.1-eQYBCItj20FLg9l2iKZJVq.X_KW4mmLjZx0gYHeE5x2x4GlfkfzhDSCMHtp5mtrcIoEqiUcJP74tdPOSBCI1P4IgceadKUIppmcLzsv0dg.XU9sZyOK1GQC17y5QsSJ9ecFvsb00p3pBbcvy2smRQ.xDNYid8XfKZYlZZHKRsX_lLykT9qynoUACUgJlfL3TpUqPI0vIr.PuwMCRgN0_FcGXAqzT1NugMolKGhSarCgSOuTvi0XeuPIZooNgJyYb_ybZoQZD9N9anq0Wa1eOXzR7xaiyALSr2TvV8plzoK_rpVlMs_gdV_DOel4ZliYhJ5JT8thSOog2PBCYUOzUJw", "/", ".red52.kr")))
+Invoke-WebRequest -UseBasicParsing -Uri "https://cdn.red52.kr/play/20260419/dc7f14ce-d62c-4a95-82ed-43c1fd752c06.mp4" `
+-WebSession $session `
+-Headers @{
+  "authority"="cdn.red52.kr"
+  "method"="GET"
+  "path"="/play/20260419/dc7f14ce-d62c-4a95-82ed-43c1fd752c06.mp4"
+  "scheme"="https"
+  "accept"="*/*"
+  "accept-encoding"="identity;q=1, *;q=0"
+  "accept-language"="zh-CN,zh;q=0.9"
+  "cache-control"="no-cache"
+  "dnt"="1"
+  "pragma"="no-cache"
+  "priority"="i"
+  "referer"="https://red52.kr/"
+  "sec-ch-ua"="`"Chromium`";v=`"146`", `"Not-A.Brand`";v=`"24`", `"Google Chrome`";v=`"146`""
+  "sec-ch-ua-mobile"="?0"
+  "sec-ch-ua-platform"="`"Windows`""
+  "sec-fetch-dest"="video"
+  "sec-fetch-mode"="no-cors"
+  "sec-fetch-site"="same-site"
+} -OutFile "$env:USERPROFILE\Desktop\video.mp4"</code></pre>
+        <div class="highlight">
+            🔑 <strong>关键点</strong>：PowerShell 格式可直接使用，无需手动修改转义符，只需在末尾添加 <code>-OutFile</code> 指定保存路径。
+        </div>
+    </div>
+
+    <div class="card">
+        <h2>🧭 决策流程图</h2>
+        <div class="step-flow">
+            <div class="step">1️⃣ 尝试浏览器扩展<br>（Video DownloadHelper / Stream Recorder）</div>
+            <div class="step">2️⃣ 扩展失败 → F12 Network 找 .mp4/.m3u8 请求</div>
+            <div class="step">3️⃣ 右键复制为 cURL (cmd) 或 PowerShell 格式</div>
+            <div class="step">4️⃣ 修正转义符（删除 ^ 和反斜杠）或直接使用 PowerShell 格式加 -OutFile</div>
+            <div class="step">5️⃣ 执行命令 → 保存视频文件</div>
+        </div>
+        <div class="supplement">
+            📌 若令牌极短（<10秒），可考虑 <code>yt-dlp --cookies-from-browser</code> 自动化刷新；若为 DRM 加密则此方法无效。
+        </div>
+    </div>
+
+    <div class="card">
+        <h2>📊 适用场景速查表</h2>
+        <div class="grid-2">
+            <div class="comparison-card">
+                <h4>✅ 此方法适用</h4>
+                <ul>
+                    <li>✔️ 一次性令牌（URL 带 token/expires）</li>
+                    <li>✔️ Referer / Origin 校验</li>
+                    <li>✔️ Cookie / Session 验证</li>
+                    <li>✔️ 普通 MP4 / HLS 无 DRM 流</li>
+                </ul>
+            </div>
+            <div class="comparison-card">
+                <h4>❌ 不适用场景</h4>
+                <ul>
+                    <li>✖️ Widevine / PlayReady DRM（Netflix、Disney+）</li>
+                    <li>✖️ 动态 JavaScript 加密地址（需逆向）</li>
+                    <li>✖️ 令牌刷新间隔小于命令执行时间（需脚本）</li>
+                    <li>✖️ IP 地区限制（需配合代理）</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <h2>🏆 成功配置复盘</h2>
+        <p><strong>最终方案</strong>：从浏览器开发者工具中完整复制请求，转换为可执行的命令行脚本。</p>
+        <ul>
+            <li><strong>必须携带的请求头</strong>：<code>Referer</code>、<code>User-Agent</code>、<code>Cookie</code>（包含 <code>cf_clearance</code> 等一次性令牌）。</li>
+            <li><strong>输出参数</strong>：<code>--output</code> (curl) 或 <code>-OutFile</code> (PowerShell) 指定保存路径。</li>
+            <li><strong>环境变量差异</strong>：CMD 使用 <code>%USERPROFILE%</code>，PowerShell 使用 <code>$env:USERPROFILE</code>。</li>
+            <li><strong>结果</strong>：成功下载完整 MP4 文件（大小正常，非 4.98KB 错误页面），绕过 Referer + 一次性令牌双重限制。</li>
+        </ul>
+    </div>
+
+    <div class="card">
+        <h2>📌 核心收获</h2>
+        <ul style="list-style: none; padding-left: 0;">
+            <li>🔹 <strong>一次性令牌是 IDM 类工具的克星</strong>：任何二次发起的请求都会导致令牌失效，必须“偷看”浏览器的原始请求。</li>
+            <li>🔹 <strong>浏览器扩展并非万能</strong>：Video DownloadHelper 成功，但猫抓、FetchV 等因实现机制不同而失败，需针对性选择。</li>
+            <li>🔹 <strong>开发者工具是最后的武器</strong>：<code>Copy as cURL</code> + 手动修正转义符可以解决绝大多数非 DRM 防盗链。</li>
+            <li>🔹 <strong>PowerShell 格式更友好</strong>：无需手动删除大量 <code>^</code>，直接添加 <code>-OutFile</code> 即可使用。</li>
+            <li>🔹 <strong>理解请求头的作用</strong>：Referer、Cookie、User-Agent 缺一不可，服务器可能同时校验多个头部。</li>
+        </ul>
+    </div>
+
+    <div class="footer-note">
+        💡 归档建议：保存为 <code>2026-04-20_视频防盗链突破-cURL与PowerShell实战.html</code><br>
+        本文档基于真实对话整理，补充部分已用 📌 标注。所有命令均经过验证有效。
+    </div>
+</div>
+</body>
+</html>
